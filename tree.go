@@ -383,7 +383,6 @@ walk: // Outer loop for walking the tree
 
 						// ... but we can't
 						tsr = (len(path) == end+1)
-						ps = nil
 						return
 					}
 
@@ -395,7 +394,6 @@ walk: // Outer loop for walking the tree
 						// trailing slash exists for TSR recommendation
 						n = n.children[0]
 						tsr = (n.path == "/" && n.value != nil) || (n.path == "" && n.indices == "/")
-						ps = nil
 					}
 
 					return
@@ -436,19 +434,16 @@ walk: // Outer loop for walking the tree
 			// additional trailing slash
 			if path == "/" && n.wildChild && n.nType != root {
 				tsr = true
-				ps = nil
 				return
 			}
 
 			if path == "/" && n.nType == static {
 				tsr = true
-				ps = nil
 				return
 			}
 
 			// No handle found. Check if a handle for this path + a
 			// trailing slash exists for trailing slash recommendation
-			ps = nil
 			for i, c := range []byte(n.indices) {
 				if c == '/' {
 					n = n.children[i]
@@ -465,7 +460,6 @@ walk: // Outer loop for walking the tree
 		tsr = (path == "/") ||
 			(len(prefix) == len(path)+1 && prefix[len(path)] == '/' &&
 				path == prefix[:len(prefix)-1] && n.value != nil)
-		ps = nil
 		return
 	}
 }
