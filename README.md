@@ -2,7 +2,7 @@
 
 PathMatcher is a lightweight high performance HTTP request router *primitive* for [Go](https://golang.org/), based on [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
 
-In contrast to the original httprouter, pathmatcher exposes more of the guts of the trie multiplexer (*mux* for short) so you can build your own router on top of it. In particular, it associates matched paths with *any type of your choice*, not just `http.Handler` or `httprouter.Handler`. It also exposes a plain `Matcher` that doesn't consider the http method at all.
+In contrast to the original httprouter, pathmatcher exposes the guts of the trie multiplexer (*mux* for short) so you can build your own router on top of it. In particular, it associates matched paths with *any generic type of your choice*, not just `http.Handler` or `httprouter.Handler`. It also exposes a plain `Matcher` that doesn't consider the http method at all.
 
 > ⚠️ This project is a work in progress and is still porting features from httprouter. ⚠️
 
@@ -26,6 +26,10 @@ The router is optimized for high performance and a small memory footprint. It sc
 
 Of course you can also set **custom [`NotFound`](https://godoc.org/github.com/julienschmidt/httprouter#Router.NotFound) and  [`MethodNotAllowed`](https://godoc.org/github.com/julienschmidt/httprouter#Router.MethodNotAllowed) handlers** and [**serve static files**](https://godoc.org/github.com/julienschmidt/httprouter#Router.ServeFiles).
 
+## Type Matrix
+
+
+
 ## Usage
 
 > ⚠️ TODO ⚠️
@@ -42,7 +46,7 @@ import (
     "net/http"
     "log"
 
-    "github.com/julienschmidt/httprouter"
+    "github.com/infogulch/pathmatcher"
 )
 
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -54,11 +58,16 @@ func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func main() {
-    router := httprouter.New()
-    router.GET("/", Index)
-    router.GET("/hello/:name", Hello)
+    matcher := pathmatcher.NewHttpMatcher()
+    matcher.GET("/", Index)
+    matcher.GET("/hello/:name", Hello)
 
-    log.Fatal(http.ListenAndServe(":8080", router))
+    log.Fatal(http.ListenAndServe(":8080", http.HandlerFunc(func(w *http.ResponseWriter, r *http.Request) {
+        match, ps, _, _ := matcher.LookupEndpoint(r.Method, r.URL.Path)
+        if match != nil {
+
+        }
+    })))
 }
 ```
 

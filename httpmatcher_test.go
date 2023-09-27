@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestHttpMatcher(t *testing.T) {
+func TestHttpMatcherMethods(t *testing.T) {
 	m := NewHttpMatcher[int]()
 
 	methods := [...]string{
@@ -18,22 +18,22 @@ func TestHttpMatcher(t *testing.T) {
 		http.MethodDelete,
 	}
 	for i, method := range methods {
-		i := i
 		path := "/" + method
-		m.AddEndpoint(method, path, &i)
+		m.Add(method, path, i)
 	}
 
+	// Try every combination of `METHOD /PATH`, only i==j should match.
 	for i, method := range methods {
 		for j, path := range methods {
 			path := "/" + path
-			v, ps, pt, ts := m.LookupEndpoint(method, path)
+			match, value, params, redir := m.Find(method, path)
 			if i != j {
-				if v != nil || len(ps) != 0 || pt != "" || ts != false {
-					t.Errorf("unexpected match (%s, %s): %d, %+v, %s, %t", method, path, v, ps, pt, ts)
+				if value != 0 || len(params) != 0 || match != "" || redir != false {
+					t.Errorf("unexpected match (%s, %s): %d, %+v, %s, %t", method, path, value, params, match, redir)
 				}
 			} else {
-				if *v != i || len(ps) != 0 || pt != path || ts != false {
-					t.Errorf("incorrect match args (%s, %s): %d, %+v, %s, %t", method, path, v, ps, pt, ts)
+				if value != i || len(params) != 0 || match != path || redir != false {
+					t.Errorf("incorrect match args (%s, %s): %d, %+v, %s, %t", method, path, value, params, match, redir)
 				}
 			}
 		}
@@ -49,14 +49,14 @@ func TestAllowed(t *testing.T) {
 		http.MethodDelete,
 	}
 	for i, method := range methods {
-		i := i
 		path := "/" + method
-		m.AddEndpoint(method, path, &i)
+		m.Add(method, path, i)
 	}
 
 	tests := []struct{ path, allowed string }{
 		{"*", "DELETE, GET, OPTIONS, POST"},
 		{"/GET", "GET, OPTIONS"},
+		{"/foo", "OPTIONS"},
 	}
 	for _, test := range tests {
 		allowed := m.Allowed(test.path)

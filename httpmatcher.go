@@ -44,20 +44,17 @@ func NewHttpMatcher[V any]() (m *HttpMatcher[V]) {
 	return
 }
 
-var validMethods map[string]struct{} = map[string]struct{}{
-	"GET":     {},
-	"HEAD":    {},
-	"POST":    {},
-	"PUT":     {},
-	"PATCH":   {},
-	"DELETE":  {},
-	"CONNECT": {},
-	"OPTIONS": {},
-	"TRACE":   {},
+func methodValid(method string) bool {
+	for _, m := range []string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "CONNECT", "OPTIONS", "TRACE"} {
+		if method == m {
+			return true
+		}
+	}
+	return false
 }
 
-func (m *HttpMatcher[V]) AddEndpoint(method, path string, value *V) {
-	if _, ok := validMethods[method]; !ok {
+func (m *HttpMatcher[V]) Add(method, path string, value V) {
+	if !methodValid(method) {
 		panic(fmt.Sprintf("invalid method '%s'", method))
 	}
 
@@ -67,24 +64,37 @@ func (m *HttpMatcher[V]) AddEndpoint(method, path string, value *V) {
 		m.trees[method] = tree
 	}
 
-	tree.addPath(path, value)
+	tree.addPath(path, &value)
 	m.maxParams = max(m.maxParams, countParams(path))
 }
 
-func (m *HttpMatcher[V]) LookupEndpoint(method, path string) (*V, Params, string, bool) {
+func (m *HttpMatcher[V]) GET(path string, value V)     { m.Add(http.MethodGet, path, value) }
+func (m *HttpMatcher[V]) HEAD(path string, value V)    { m.Add(http.MethodHead, path, value) }
+func (m *HttpMatcher[V]) POST(path string, value V)    { m.Add(http.MethodPost, path, value) }
+func (m *HttpMatcher[V]) PUT(path string, value V)     { m.Add(http.MethodPut, path, value) }
+func (m *HttpMatcher[V]) PATCH(path string, value V)   { m.Add(http.MethodPatch, path, value) }
+func (m *HttpMatcher[V]) DELETE(path string, value V)  { m.Add(http.MethodDelete, path, value) }
+func (m *HttpMatcher[V]) TRACE(path string, value V)   { m.Add(http.MethodTrace, path, value) }
+func (m *HttpMatcher[V]) CONNECT(path string, value V) { m.Add(http.MethodConnect, path, value) }
+func (m *HttpMatcher[V]) OPTIONS(path string, value V) { m.Add(http.MethodOptions, path, value) }
+
+func (m *HttpMatcher[V]) Find(method, path string) (match string, value V, params Params, redir bool) {
 	tree, ok := m.trees[method]
 	if !ok {
-		return nil, nil, "", false
+		return
 	}
-	value, params, matchedPath, redir := tree.findMatch(path, m.getParams)
-	if value == nil {
-		m.putParams(params)
-		return nil, nil, "", redir
+	var pvalue *V
+	var pparams *Params
+	pvalue, pparams, match, redir = tree.findMatch(path, m.getParams)
+	if pvalue == nil {
+		m.putParams(pparams)
+		return
 	}
-	if params == nil {
-		return value, nil, matchedPath, redir
+	if pparams != nil {
+		params = *pparams
 	}
-	return value, *params, matchedPath, redir
+	value = *pvalue
+	return
 }
 
 // Allowed returns an Allow list [1] based on the methods and endpoints set in

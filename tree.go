@@ -322,7 +322,7 @@ func (n *node[V]) insertChild(path, fullPath string, value *V) {
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node[V]) findMatch(path string, params func() *Params) (value *V, ps *Params, matchedPath string, tsr bool) {
+func (n *node[V]) findMatch(path string, params func() *Params) (value *V, ps *Params, match string, tsr bool) {
 walk: // Outer loop for walking the tree
 	for {
 		prefix := n.path
@@ -360,17 +360,15 @@ walk: // Outer loop for walking the tree
 					}
 
 					// Save param value
-					if params != nil {
-						if ps == nil {
-							ps = params()
-						}
-						// Expand slice within preallocated capacity
-						i := len(*ps)
-						*ps = (*ps)[:i+1]
-						(*ps)[i] = Param{
-							Key:   n.path[1:],
-							Value: path[:end],
-						}
+					if ps == nil {
+						ps = params()
+					}
+					// Expand slice within preallocated capacity
+					i := len(*ps)
+					*ps = (*ps)[:i+1]
+					(*ps)[i] = Param{
+						Key:   n.path[1:],
+						Value: path[:end],
 					}
 
 					// We need to go deeper!
@@ -387,7 +385,7 @@ walk: // Outer loop for walking the tree
 					}
 
 					if value = n.value; value != nil {
-						matchedPath = n.fullPath
+						match = n.fullPath
 						return
 					} else if len(n.children) == 1 {
 						// No handle found. Check if a handle for this path + a
@@ -400,21 +398,19 @@ walk: // Outer loop for walking the tree
 
 				case catchAll:
 					// Save param value
-					if params != nil {
-						if ps == nil {
-							ps = params()
-						}
-						// Expand slice within preallocated capacity
-						i := len(*ps)
-						*ps = (*ps)[:i+1]
-						(*ps)[i] = Param{
-							Key:   n.path[2:],
-							Value: path,
-						}
+					if ps == nil {
+						ps = params()
+					}
+					// Expand slice within preallocated capacity
+					i := len(*ps)
+					*ps = (*ps)[:i+1]
+					(*ps)[i] = Param{
+						Key:   n.path[2:],
+						Value: path,
 					}
 
 					value = n.value
-					matchedPath = n.fullPath
+					match = n.fullPath
 					return
 
 				default:
@@ -424,8 +420,9 @@ walk: // Outer loop for walking the tree
 		} else if path == prefix {
 			// We should have reached the node containing the handle.
 			// Check if this node has a handle registered.
-			if value = n.value; value != nil {
-				matchedPath = n.fullPath
+			if n.value != nil {
+				value = n.value
+				match = n.fullPath
 				return
 			}
 

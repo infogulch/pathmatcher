@@ -420,7 +420,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/vendor/x",
 	}
 	for _, route := range tsrRoutes {
-		handler, _, _, tsr := tree.findMatch(route, nil)
+		handler, _, _, tsr := tree.findMatch(route, getParams)
 		if handler != nil {
 			t.Fatalf("non-nil handler for TSR route '%s", route)
 		} else if !tsr {
@@ -711,7 +711,7 @@ func TestRedirectTrailingSlash(t *testing.T) {
 		node.addPath(item.path, &i)
 	}
 
-	_, _, _, tsr := node.findMatch("/hello/abx/", nil)
+	_, _, _, tsr := node.findMatch("/hello/abx/", getParams)
 	if tsr != true {
 		t.Fatalf("want true, is false")
 	}
