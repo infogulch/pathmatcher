@@ -42,32 +42,36 @@ Let's start with a trivial example:
 package main
 
 import (
-    "fmt"
-    "net/http"
-    "log"
+	"fmt"
+	"log"
+	"net/http"
 
-    "github.com/infogulch/pathmatcher"
+	"github.com/infogulch/pathmatcher"
 )
 
-func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-    fmt.Fprint(w, "Welcome!\n")
+func Index(w http.ResponseWriter, r *http.Request, _ pathmatcher.Params) {
+	fmt.Fprint(w, "Welcome!\n")
 }
 
-func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
+func Hello(w http.ResponseWriter, r *http.Request, ps pathmatcher.Params) {
+	fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
 }
 
-func main() {
-    matcher := pathmatcher.NewHttpMatcher()
-    matcher.GET("/", Index)
-    matcher.GET("/hello/:name", Hello)
+type Handler func(w http.ResponseWriter, r *http.Request, ps pathmatcher.Params)
 
-    log.Fatal(http.ListenAndServe(":8080", http.HandlerFunc(func(w *http.ResponseWriter, r *http.Request) {
-        match, ps, _, _ := matcher.LookupEndpoint(r.Method, r.URL.Path)
-        if match != nil {
+func Example() {
+	matcher := pathmatcher.NewHttpMatcher[Handler]()
+	matcher.GET("/", Index)
+	matcher.GET("/hello/:name", Hello)
 
-        }
-    })))
+	log.Fatal(http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, handler, params, _ := matcher.Find(r.Method, r.URL.Path)
+		if handler != nil {
+			handler(w, r, params)
+		} else {
+			http.NotFound(w, r)
+		}
+	})))
 }
 ```
 
